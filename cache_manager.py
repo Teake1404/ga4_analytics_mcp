@@ -18,8 +18,9 @@ class CacheManager:
     Stores cache in n8n Data Table or local file
     """
     
-    def __init__(self, cache_duration_hours: int = 24):
+    def __init__(self, cache_duration_hours: int = 24, max_cache_size: int = 100):
         self.cache_duration = timedelta(hours=cache_duration_hours)
+        self.max_cache_size = max_cache_size  # Limit cache entries
         self.cache = {}  # In-memory cache for current session
         
     def generate_cache_key(self, data: Dict[str, Any]) -> str:
@@ -71,17 +72,37 @@ class CacheManager:
     
     def save_insights(self, cache_key: str, insights: Dict[str, Any]) -> None:
         """
-        Save insights to cache
+        Save insights to cache with size limit
         
         Args:
             cache_key: Cache key
             insights: Insights to cache
         """
+        # Check cache size limit
+        if len(self.cache) >= self.max_cache_size:
+            self._cleanup_oldest_entries()
+        
         self.cache[cache_key] = {
             'timestamp': datetime.now().isoformat(),
             'insights': insights
         }
-        logger.info(f"Cached insights: {cache_key[:8]}...")
+        logger.info(f"Cached insights: {cache_key[:8]}... (cache size: {len(self.cache)}/{self.max_cache_size})")
+    
+    def _cleanup_oldest_entries(self) -> None:
+        """Remove oldest cache entries when limit is reached"""
+        # Sort by timestamp and remove oldest 25% of entries
+        entries_to_remove = max(1, self.max_cache_size // 4)
+        
+        sorted_entries = sorted(
+            self.cache.items(),
+            key=lambda x: datetime.fromisoformat(x[1]['timestamp'])
+        )
+        
+        for cache_key, _ in sorted_entries[:entries_to_remove]:
+            del self.cache[cache_key]
+            logger.info(f"Removed oldest cache entry: {cache_key[:8]}...")
+        
+        logger.info(f"Cache cleanup: removed {entries_to_remove} entries")
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
@@ -100,11 +121,19 @@ class CacheManager:
         
         return {
             'total_entries': total_entries,
+            'max_cache_size': self.max_cache_size,
             'cache_size_bytes': cache_size,
             'cache_size_mb': round(cache_size / 1024 / 1024, 2),
             'oldest_entry': oldest.isoformat() if oldest else None,
-            'newest_entry': newest.isoformat() if newest else None
+            'newest_entry': newest.isoformat() if newest else None,
+            'memory_usage_percent': round((total_entries / self.max_cache_size) * 100, 1)
         }
+    
+    def clear_cache(self) -> None:
+        """Clear all cache entries (for testing/debugging)"""
+        cache_count = len(self.cache)
+        self.cache.clear()
+        logger.info(f"Cleared {cache_count} cache entries")
     
     def prepare_for_n8n_storage(self, insights: Dict[str, Any]) -> Dict[str, Any]:
         """
