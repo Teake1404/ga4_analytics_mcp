@@ -1,0 +1,23 @@
+# Dockerfile for Report Generator Service (Service #2)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt plotly kaleido
+
+# Copy only report-related files
+COPY report_server.py .
+COPY report_generator.py .
+
+# Environment
+ENV PORT=8080
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8080
+
+# Run report server
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 4 --timeout 300 report_server:app
+
+

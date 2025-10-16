@@ -1,0 +1,20 @@
+# Flask API
+flask==3.0.0
+flask-cors==4.0.0
+gunicorn==21.2.0
+
+# Claude AI
+anthropic>=0.40.0
+
+# HTTP requests (for future GA4 API integration)
+aiohttp==3.9.1
+requests==2.31.0
+
+# Configuration
+python-dotenv==1.0.0
+
+# Google Analytics 4 integration
+google-analytics-data==0.18.0
+google-auth==2.23.0
+google-auth-oauthlib==1.1.0
+
