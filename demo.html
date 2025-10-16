@@ -219,11 +219,13 @@
             if (insights.critical_issues && insights.critical_issues.length > 0) {
                 html += `
                     <div class="insight-card">
-                        <h3>🚨 Critical Issues</h3>
+                        <h3>🚨 Critical Issues (${insights.critical_issues.length})</h3>
                         ${insights.critical_issues.map(issue => `
                             <div class="insight-item impact-high">
-                                <strong>${issue.issue}</strong><br>
-                                <small>Impact: ${issue.impact} | Affected Users: ${issue.affected_users}</small>
+                                <strong>${issue.issue || 'N/A'}</strong><br>
+                                <small>Impact: ${issue.impact || 'N/A'} | Affected Users: ${issue.affected_users || 'N/A'}</small>
+                                ${issue.description ? `<br><em>${issue.description}</em>` : ''}
+                                ${issue.severity ? `<br><span style="color: #dc3545;">Severity: ${issue.severity}</span>` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -234,11 +236,13 @@
             if (insights.opportunities && insights.opportunities.length > 0) {
                 html += `
                     <div class="insight-card">
-                        <h3>💡 Opportunities</h3>
+                        <h3>💡 Opportunities (${insights.opportunities.length})</h3>
                         ${insights.opportunities.map(opp => `
                             <div class="insight-item impact-medium">
-                                <strong>${opp.opportunity}</strong><br>
-                                <small>Potential Impact: ${opp.potential_impact}</small>
+                                <strong>${opp.opportunity || 'N/A'}</strong><br>
+                                <small>Potential Impact: ${opp.potential_impact || opp.potential_lift || 'N/A'}</small>
+                                ${opp.description ? `<br><em>${opp.description}</em>` : ''}
+                                ${opp.priority ? `<br><span style="color: #007bff;">Priority: ${opp.priority}</span>` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -249,11 +253,31 @@
             if (insights.recommendations && insights.recommendations.length > 0) {
                 html += `
                     <div class="insight-card">
-                        <h3>🎯 Recommendations</h3>
+                        <h3>🎯 Recommendations (${insights.recommendations.length})</h3>
                         ${insights.recommendations.map(rec => `
-                            <div class="insight-item impact-${rec.impact}">
-                                <strong>${rec.action}</strong><br>
-                                <small>Impact: ${rec.impact} | Effort: ${rec.effort}</small>
+                            <div class="insight-item impact-${rec.impact || 'medium'}">
+                                <strong>${rec.action || rec.recommendation || 'N/A'}</strong><br>
+                                <small>Impact: ${rec.impact || 'N/A'} | Effort: ${rec.effort || 'N/A'}</small>
+                                ${rec.description ? `<br><em>${rec.description}</em>` : ''}
+                                ${rec.expected_impact ? `<br><span style="color: #28a745;">Expected Impact: ${rec.expected_impact}</span>` : ''}
+                                ${rec.priority ? `<br><span style="color: #007bff;">Priority: ${rec.priority}</span>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Suggested Tests
+            if (insights.suggested_tests && insights.suggested_tests.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🧪 Suggested Tests (${insights.suggested_tests.length})</h3>
+                        ${insights.suggested_tests.map(test => `
+                            <div class="insight-item impact-medium">
+                                <strong>${test.test_name || 'N/A'}</strong><br>
+                                <small>Hypothesis: ${test.hypothesis || 'N/A'}</small>
+                                ${test.expected_impact ? `<br><span style="color: #28a745;">Expected Impact: ${test.expected_impact}</span>` : ''}
+                                ${test.test_type ? `<br><span style="color: #6f42c1;">Type: ${test.test_type}</span>` : ''}
                             </div>
                         `).join('')}
                     </div>

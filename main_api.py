@@ -364,7 +364,7 @@ def funnel_analysis_endpoint():
             logger.info(f"Using cached AI insights (saved API call)")
         else:
             logger.info("Generating AI insights with optimized processing...")
-            # Use minimal AI if environment variable is set
+            # Use full AI insights by default for better demo experience
             if os.getenv("DISABLE_AI", "false").lower() == "true":
                 # Return basic insights without AI processing
                 insights = {
@@ -383,14 +383,8 @@ def funnel_analysis_endpoint():
                         {"opportunity": "Browser compatibility improvements", "potential_impact": "15% conversion increase"}
                     ]
                 }
-            elif os.getenv("USE_MINIMAL_AI", "false").lower() == "true":
-                insights = generate_funnel_insights_minimal(
-                    outliers=outliers,
-                    baseline_rates=baseline_rates,
-                    funnel_metrics=funnel_metrics,
-                    historical_data=historical_data
-                )
             else:
+                # Use full AI insights for rich, detailed analysis
                 insights = ai_insights.generate_funnel_insights(
                     outliers=outliers,
                     baseline_rates=baseline_rates,
