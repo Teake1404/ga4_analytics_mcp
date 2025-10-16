@@ -3,7 +3,7 @@ Flask API for GA4 Funnel Analysis MCP
 Following SEO MCP pattern: stateless, dynamic configuration, Cloud Run ready
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import asyncio
 import logging
@@ -29,13 +29,20 @@ logger = logging.getLogger(__name__)
 
 @app.route('/', methods=['GET'])
 def index():
-    """Health check endpoint"""
+    """Serve demo page or health check"""
+    return send_file('demo.html')
+
+
+@app.route('/api', methods=['GET'])
+def api_info():
+    """API information endpoint"""
     return jsonify({
         "service": "GA4 Funnel Analysis MCP",
         "status": "running",
         "version": "1.0.0",
         "data_source": "mock" if config.USE_MOCK_DATA else "ga4",
         "endpoints": {
+            "/": "GET - Demo page",
             "/api/funnel-analysis": "POST - Generate funnel analysis report (6 dimensions: channel, device, browser, resolution, product, category)",
             "/api/health": "GET - Health check"
         }

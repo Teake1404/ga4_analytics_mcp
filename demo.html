@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA4 AI Funnel Analysis Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+        .content {
+            padding: 40px;
+        }
+        .demo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .demo-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .demo-button:hover {
+            transform: translateY(-2px);
+        }
+        .demo-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        .insight-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .insight-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .insight-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        .impact-high { border-left: 4px solid #dc3545; }
+        .impact-medium { border-left: 4px solid #ffc107; }
+        .impact-low { border-left: 4px solid #28a745; }
+        .status {
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .metadata {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 GA4 AI Funnel Analysis</h1>
+            <p>Advanced Analytics with AI-Powered Insights</p>
+        </div>
+        
+        <div class="content">
+            <div class="demo-section">
+                <h2>Live Demo</h2>
+                <p>Click the button below to generate AI-powered funnel analysis insights using mock GA4 data.</p>
+                <button class="demo-button" onclick="runAnalysis()" id="demoBtn">
+                    🎯 Generate AI Insights
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>🤖 AI is analyzing your funnel data...</p>
+            </div>
+            
+            <div class="results" id="results">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runAnalysis() {
+            const button = document.getElementById('demoBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            // Reset UI
+            button.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/funnel-analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        use_mock_data: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    displayResults(data);
+                } else {
+                    throw new Error(data.message || 'Analysis failed');
+                }
+                
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            const insights = data.insights;
+            
+            let html = `
+                <div class="status success">
+                    ✅ Analysis Complete! Generated ${insights.recommendations?.length || 0} recommendations, 
+                    identified ${insights.critical_issues?.length || 0} critical issues, 
+                    and found ${insights.opportunities?.length || 0} opportunities.
+                </div>
+                
+                <div class="metadata">
+                    <strong>Service Info:</strong><br>
+                    • Data Provider: ${data.data_provider || 'Unknown'}<br>
+                    • AI Model: ${insights.model || 'Unknown'}<br>
+                    • Analysis ID: ${data.analysis_id || 'N/A'}<br>
+                    • Timestamp: ${new Date().toLocaleString()}
+                </div>
+            `;
+            
+            // Critical Issues
+            if (insights.critical_issues && insights.critical_issues.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🚨 Critical Issues</h3>
+                        ${insights.critical_issues.map(issue => `
+                            <div class="insight-item impact-high">
+                                <strong>${issue.issue}</strong><br>
+                                <small>Impact: ${issue.impact} | Affected Users: ${issue.affected_users}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Opportunities
+            if (insights.opportunities && insights.opportunities.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>💡 Opportunities</h3>
+                        ${insights.opportunities.map(opp => `
+                            <div class="insight-item impact-medium">
+                                <strong>${opp.opportunity}</strong><br>
+                                <small>Potential Impact: ${opp.potential_impact}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Recommendations
+            if (insights.recommendations && insights.recommendations.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🎯 Recommendations</h3>
+                        ${insights.recommendations.map(rec => `
+                            <div class="insight-item impact-${rec.impact}">
+                                <strong>${rec.action}</strong><br>
+                                <small>Impact: ${rec.impact} | Effort: ${rec.effort}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            results.innerHTML = html;
+            results.style.display = 'block';
+        }
+        
+        function displayError(message) {
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="status error">
+                    ❌ Error: ${message}
+                </div>
+                <p>Please try again or contact support if the issue persists.</p>
+            `;
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
