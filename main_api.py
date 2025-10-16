@@ -20,7 +20,10 @@ from ga4_auth import get_ga4_client, is_ga4_authenticated, get_ga4_auth_url, exc
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {"origins": ["*"]},
+    r"/*": {"origins": ["*"]}
+})
 
 # Setup logging
 logging.basicConfig(level=config.LOG_LEVEL)
