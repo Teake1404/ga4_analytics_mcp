@@ -23,8 +23,9 @@ class GA4Client:
     def __init__(self):
         """Initialize GA4 client with service account credentials"""
         self.client = self._get_client()
+        self.authenticated = self.client is not None
     
-    def _get_client(self) -> BetaAnalyticsDataClient:
+    def _get_client(self) -> Optional[BetaAnalyticsDataClient]:
         """Get authenticated GA4 client"""
         try:
             # Try environment variable first (for Cloud Run)
@@ -38,7 +39,8 @@ class GA4Client:
                 # Fallback to file path
                 credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
                 if not credentials_path:
-                    raise ValueError("Either GA4_SA_JSON or GOOGLE_APPLICATION_CREDENTIALS must be set")
+                    logger.warning("GA4 credentials not found. GA4 features will be disabled.")
+                    return None
                 
                 credentials = service_account.Credentials.from_service_account_file(
                     credentials_path,
@@ -47,14 +49,18 @@ class GA4Client:
             
             return BetaAnalyticsDataClient(credentials=credentials)
         except Exception as e:
-            logger.error(f"Failed to initialize GA4 client: {e}")
-            raise
+            logger.warning(f"Failed to initialize GA4 client: {e}. GA4 features will be disabled.")
+            return None
     
     def get_funnel_data(self, property_id: str, days: int = 30) -> List[Dict[str, Any]]:
         """
         Get funnel data using event-based approach
         Returns data suitable for AI analysis
         """
+        if not self.client:
+            logger.warning("GA4 client not authenticated. Returning empty data.")
+            return []
+        
         try:
             request = RunReportRequest(
                 property=f"properties/{property_id}",
@@ -145,6 +151,10 @@ class GA4Client:
     
     def get_traffic_sources(self, property_id: str, days: int = 30) -> List[Dict[str, Any]]:
         """Get traffic source data"""
+        if not self.client:
+            logger.warning("GA4 client not authenticated. Returning empty data.")
+            return []
+        
         try:
             request = RunReportRequest(
                 property=f"properties/{property_id}",
@@ -183,6 +193,10 @@ class GA4Client:
     
     def get_overview_metrics(self, property_id: str, days: int = 30) -> Dict[str, Any]:
         """Get overall property metrics"""
+        if not self.client:
+            logger.warning("GA4 client not authenticated. Returning empty data.")
+            return {}
+        
         try:
             request = RunReportRequest(
                 property=f"properties/{property_id}",
