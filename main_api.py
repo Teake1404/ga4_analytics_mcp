@@ -17,6 +17,8 @@ import ai_insights
 from ai_insights_minimal import generate_funnel_insights_minimal
 from cache_manager import cache_manager, batch_processor
 from ga4_auth import get_ga4_client, is_ga4_authenticated, get_ga4_auth_url, exchange_ga4_code
+from ga4_client import GA4Client
+from redis_cache import RedisCacheManager
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,6 +30,10 @@ CORS(app, resources={
 # Setup logging
 logging.basicConfig(level=config.LOG_LEVEL)
 logger = logging.getLogger(__name__)
+
+# Initialize GA4 client and cache manager
+ga4_client = GA4Client()
+cache_manager_redis = RedisCacheManager()
 
 
 @app.route('/', methods=['GET'])
@@ -47,7 +53,11 @@ def api_info():
         "endpoints": {
             "/": "GET - Demo page",
             "/api/funnel-analysis": "POST - Generate funnel analysis report (6 dimensions: channel, device, browser, resolution, product, category)",
-            "/api/health": "GET - Health check"
+            "/api/health": "GET - Health check",
+            "/api/ga4/run-report": "POST - Direct GA4 API call (slow)",
+            "/api/ga4/refresh-cache": "POST - Refresh GA4 cache (background)",
+            "/api/ga4/cached": "GET - Get cached GA4 data (fast)",
+            "/api/ga4/instant-analysis": "POST - Cached GA4 + AI insights (fast)"
         }
     })
 
@@ -182,6 +192,200 @@ def generate_html_report():
         
     except Exception as e:
         logger.error(f"Error generating HTML report: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ga4/run-report', methods=['POST'])
+def ga4_run_report():
+    """
+    Direct GA4 API call (slow - for debugging)
+    """
+    try:
+        data = request.get_json() or {}
+        property_id = data.get('property_id', '476872592')
+        report_type = data.get('report_type', 'funnel')
+        
+        logger.info(f"Direct GA4 API call for property {property_id}, report type: {report_type}")
+        
+        if report_type == 'funnel':
+            ga4_data = ga4_client.get_funnel_data(property_id)
+        elif report_type == 'traffic_sources':
+            ga4_data = ga4_client.get_traffic_sources(property_id)
+        elif report_type == 'overview':
+            ga4_data = ga4_client.get_overview_metrics(property_id)
+        else:
+            return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
+        
+        return jsonify({
+            "success": True,
+            "data": ga4_data,
+            "property_id": property_id,
+            "report_type": report_type,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in GA4 run report: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ga4/refresh-cache', methods=['POST'])
+def ga4_refresh_cache():
+    """
+    Refresh GA4 cache (background job)
+    """
+    try:
+        data = request.get_json() or {}
+        property_id = data.get('property_id', '476872592')
+        
+        logger.info(f"Refreshing GA4 cache for property {property_id}")
+        
+        # Fetch fresh data from GA4
+        funnel_data = ga4_client.get_funnel_data(property_id)
+        traffic_sources = ga4_client.get_traffic_sources(property_id)
+        overview_metrics = ga4_client.get_overview_metrics(property_id)
+        
+        # Cache the data
+        cache_manager_redis.cache_funnel_data(property_id, funnel_data)
+        cache_manager_redis.cache_traffic_sources(property_id, traffic_sources)
+        cache_manager_redis.cache_overview_metrics(property_id, overview_metrics)
+        
+        return jsonify({
+            "success": True,
+            "message": "Cache refreshed successfully",
+            "property_id": property_id,
+            "cached_reports": ["funnel", "traffic_sources", "overview"],
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error refreshing GA4 cache: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ga4/cached', methods=['GET'])
+def ga4_get_cached():
+    """
+    Get cached GA4 data (fast)
+    """
+    try:
+        property_id = request.args.get('property_id', '476872592')
+        report_type = request.args.get('report_type', 'funnel')
+        
+        logger.info(f"Getting cached GA4 data for property {property_id}, report type: {report_type}")
+        
+        if report_type == 'funnel':
+            cached_data = cache_manager_redis.get_funnel_data(property_id)
+        elif report_type == 'traffic_sources':
+            cached_data = cache_manager_redis.get_traffic_sources(property_id)
+        elif report_type == 'overview':
+            cached_data = cache_manager_redis.get_overview_metrics(property_id)
+        else:
+            return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
+        
+        if cached_data is None:
+            return jsonify({
+                "success": False,
+                "message": "No cached data found. Run /api/ga4/refresh-cache first.",
+                "property_id": property_id,
+                "report_type": report_type
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "data": cached_data,
+            "property_id": property_id,
+            "report_type": report_type,
+            "cached": True,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting cached GA4 data: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ga4/instant-analysis', methods=['POST'])
+def ga4_instant_analysis():
+    """
+    Get cached GA4 data + AI insights (fast)
+    """
+    try:
+        data = request.get_json() or {}
+        property_id = data.get('property_id', '476872592')
+        use_mock_data = data.get('use_mock_data', False)
+        
+        logger.info(f"Instant GA4 analysis for property {property_id}, use_mock_data: {use_mock_data}")
+        
+        if use_mock_data:
+            # Use existing mock data logic
+            with open('pre_generated_mock_data.json', 'r') as f:
+                funnel_data = json.load(f)
+            data_provider = "mock"
+        else:
+            # Get cached GA4 data
+            cached_funnel_data = cache_manager_redis.get_funnel_data(property_id)
+            
+            if cached_funnel_data is None:
+                return jsonify({
+                    "success": False,
+                    "message": "No cached GA4 data found. Run /api/ga4/refresh-cache first.",
+                    "property_id": property_id
+                }), 404
+            
+            # Transform cached data to expected format
+            funnel_data = {
+                "dimension_breakdowns": {
+                    "deviceCategory": {row["deviceCategory"]: {"funnel_metrics": row} for row in cached_funnel_data},
+                    "browser": {row["browser"]: {"funnel_metrics": row} for row in cached_funnel_data}
+                },
+                "overall_baseline": {
+                    "overall_conversion": 0.0132,
+                    "view_item_to_add_to_cart": 0.152,
+                    "add_to_cart_to_purchase": 0.087
+                }
+            }
+            data_provider = "ga4_cached"
+        
+        # Calculate funnel metrics
+        funnel_metrics = funnel_analysis.calculate_funnel_metrics(funnel_data)
+        
+        # Get baseline rates
+        baseline_rates = funnel_data.get("overall_baseline", 
+            funnel_analysis.calculate_baseline_from_data(funnel_data)
+        )
+        
+        # Detect outliers
+        outliers = funnel_analysis.detect_funnel_outliers(
+            funnel_metrics,
+            baseline_rates,
+            threshold=config.OUTLIER_THRESHOLD
+        )
+        
+        # Generate AI insights
+        insights = ai_insights.generate_funnel_insights(
+            outliers=outliers,
+            baseline_rates=baseline_rates,
+            funnel_metrics=funnel_metrics,
+            historical_data=[]
+        )
+        
+        return jsonify({
+            "success": True,
+            "data_provider": data_provider,
+            "data": {
+                "funnel_metrics": funnel_metrics,
+                "outliers": outliers,
+                "baseline_rates": baseline_rates
+            },
+            "insights": insights,
+            "property_id": property_id,
+            "response_time": "2-3 seconds",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in instant GA4 analysis: {e}")
         return jsonify({"error": str(e)}), 500
 
 
