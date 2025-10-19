@@ -341,17 +341,25 @@ def ga4_instant_analysis():
                 }), 404
             
             # Transform cached data to expected format
-            funnel_data = {
-                "dimension_breakdowns": {
-                    "deviceCategory": {row["deviceCategory"]: {"funnel_metrics": row} for row in cached_funnel_data},
-                    "browser": {row["browser"]: {"funnel_metrics": row} for row in cached_funnel_data}
-                },
-                "overall_baseline": {
-                    "overall_conversion": 0.0132,
-                    "view_item_to_add_to_cart": 0.152,
-                    "add_to_cart_to_purchase": 0.087
+            if isinstance(cached_funnel_data, list) and len(cached_funnel_data) > 0:
+                funnel_data = {
+                    "dimension_breakdowns": {
+                        "deviceCategory": {row.get("deviceCategory", "unknown"): {"funnel_metrics": row} for row in cached_funnel_data},
+                        "browser": {row.get("browser", "unknown"): {"funnel_metrics": row} for row in cached_funnel_data}
+                    },
+                    "overall_baseline": {
+                        "overall_conversion": 0.0132,
+                        "view_item_to_add_to_cart": 0.152,
+                        "add_to_cart_to_purchase": 0.087
+                    }
                 }
-            }
+            else:
+                # Return empty data if no cached data
+                return jsonify({
+                    "success": False,
+                    "message": "No cached data available. Run /api/ga4/refresh-cache first.",
+                    "property_id": property_id
+                }), 404
             data_provider = "ga4_cached"
         
         # Calculate funnel metrics
