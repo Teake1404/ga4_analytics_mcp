@@ -28,24 +28,32 @@ class GA4Client:
     def _get_client(self) -> Optional[BetaAnalyticsDataClient]:
         """Get authenticated GA4 client"""
         try:
-            # Try environment variable first (for Cloud Run)
-            sa_json = os.getenv("GA4_SA_JSON")
-            if sa_json:
-                credentials = service_account.Credentials.from_service_account_info(
-                    json.loads(sa_json),
+            # Try service account file in project directory first
+            service_account_file = "service_account.json"
+            if os.path.exists(service_account_file):
+                credentials = service_account.Credentials.from_service_account_file(
+                    service_account_file,
                     scopes=["https://www.googleapis.com/auth/analytics.readonly"]
                 )
             else:
-                # Fallback to file path
-                credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-                if not credentials_path:
-                    logger.warning("GA4 credentials not found. GA4 features will be disabled.")
-                    return None
-                
-                credentials = service_account.Credentials.from_service_account_file(
-                    credentials_path,
-                    scopes=["https://www.googleapis.com/auth/analytics.readonly"]
-                )
+                # Fallback to environment variable
+                sa_json = os.getenv("GA4_SA_JSON")
+                if sa_json:
+                    credentials = service_account.Credentials.from_service_account_info(
+                        json.loads(sa_json),
+                        scopes=["https://www.googleapis.com/auth/analytics.readonly"]
+                    )
+                else:
+                    # Fallback to GOOGLE_APPLICATION_CREDENTIALS
+                    credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                    if not credentials_path:
+                        logger.warning("GA4 credentials not found. GA4 features will be disabled.")
+                        return None
+                    
+                    credentials = service_account.Credentials.from_service_account_file(
+                        credentials_path,
+                        scopes=["https://www.googleapis.com/auth/analytics.readonly"]
+                    )
             
             return BetaAnalyticsDataClient(credentials=credentials)
         except Exception as e:
