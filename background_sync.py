@@ -48,7 +48,7 @@ class BackgroundSyncService:
             logger.error(f"Error during cache sync: {e}")
             return False
     
-    def start_scheduler(self, property_id: str = "476872592", interval_minutes: int = 15):
+    def start_scheduler(self, property_id: str = "476872592", interval_minutes: int = 120):
         """
         Start the background scheduler
         
@@ -114,7 +114,7 @@ class BackgroundSyncService:
 sync_service = BackgroundSyncService()
 
 
-def start_background_sync(property_id: str = "476872592", interval_minutes: int = 15):
+def start_background_sync(property_id: str = "476872592", interval_minutes: int = 120):
     """Start background sync service"""
     sync_service.start_scheduler(property_id, interval_minutes)
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="GA4 Background Sync Service")
     parser.add_argument("--property-id", default="476872592", help="GA4 Property ID")
-    parser.add_argument("--interval", type=int, default=15, help="Sync interval in minutes")
+    parser.add_argument("--interval", type=int, default=120, help="Sync interval in minutes")
     parser.add_argument("--api-url", help="API base URL")
     parser.add_argument("--once", action="store_true", help="Run sync once and exit")
     

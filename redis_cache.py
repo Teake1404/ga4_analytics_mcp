@@ -15,7 +15,7 @@ class RedisCacheManager:
     def __init__(self):
         """Initialize Redis connection"""
         self.redis_client = self._get_redis_client()
-        self.default_ttl = 900  # 15 minutes
+        self.default_ttl = 14400  # 4 hours
     
     def _get_redis_client(self) -> redis.Redis:
         """Get Redis client with connection settings"""
