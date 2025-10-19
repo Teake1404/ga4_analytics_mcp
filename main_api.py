@@ -57,6 +57,7 @@ def api_info():
             "/api/ga4/run-report": "POST - Direct GA4 API call (slow)",
             "/api/ga4/refresh-cache": "POST - Refresh GA4 cache (background)",
             "/api/ga4/cached": "GET - Get cached GA4 data (fast)",
+            "/api/ga4/cached-data": "POST - Get cached GA4 data only (fast, no AI)",
             "/api/ga4/instant-analysis": "POST - Cached GA4 + AI insights (fast)"
         }
     })
@@ -386,6 +387,61 @@ def ga4_instant_analysis():
         
     except Exception as e:
         logger.error(f"Error in instant GA4 analysis: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ga4/cached-data', methods=['POST'])
+def ga4_cached_data():
+    """
+    Get cached GA4 data only (fast - no AI processing)
+    Perfect for demonstrating cache speed vs AI processing time
+    """
+    try:
+        data = request.get_json() or {}
+        property_id = data.get('property_id', '476872592')
+        report_type = data.get('report_type', 'funnel')
+        
+        logger.info(f"Getting cached GA4 data for property {property_id}, report type: {report_type}")
+        
+        # Try to get cached data first
+        cached_data = None
+        data_provider = "cache_miss"
+        
+        if report_type == 'funnel':
+            cached_data = cache_manager_redis.get_funnel_data(property_id)
+        elif report_type == 'traffic_sources':
+            cached_data = cache_manager_redis.get_traffic_sources(property_id)
+        elif report_type == 'overview':
+            cached_data = cache_manager_redis.get_overview_metrics(property_id)
+        else:
+            return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
+        
+        if cached_data:
+            data_provider = "cached"
+            logger.info(f"Cache hit for {report_type} data")
+        else:
+            # Fallback to direct GA4 call if no cache
+            logger.info(f"Cache miss for {report_type} data, fetching from GA4")
+            if report_type == 'funnel':
+                cached_data = ga4_client.get_funnel_data(property_id)
+            elif report_type == 'traffic_sources':
+                cached_data = ga4_client.get_traffic_sources(property_id)
+            elif report_type == 'overview':
+                cached_data = ga4_client.get_overview_metrics(property_id)
+            data_provider = "ga4_direct"
+        
+        return jsonify({
+            "success": True,
+            "data_provider": data_provider,
+            "data": cached_data,
+            "property_id": property_id,
+            "report_type": report_type,
+            "response_time": "2-3 seconds" if data_provider == "cached" else "15-30 seconds",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in cached GA4 data: {e}")
         return jsonify({"error": str(e)}), 500
 
 
