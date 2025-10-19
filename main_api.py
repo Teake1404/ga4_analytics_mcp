@@ -309,28 +309,34 @@ def ga4_get_cached():
 @app.route('/api/ga4/instant-analysis', methods=['POST'])
 def ga4_instant_analysis():
     """
-    Get cached GA4 data + AI insights (fast)
+    Process GA4 data + AI insights (fast - no API calls)
+    Expects data to be provided in request body or use mock data
     """
     try:
         data = request.get_json() or {}
         property_id = data.get('property_id', '476872592')
         use_mock_data = data.get('use_mock_data', False)
+        provided_data = data.get('data')  # Allow data to be passed in
         
-        logger.info(f"Instant GA4 analysis for property {property_id}, use_mock_data: {use_mock_data}")
+        logger.info(f"AI insights processing for property {property_id}, use_mock_data: {use_mock_data}, data_provided: {provided_data is not None}")
         
         if use_mock_data:
             # Use existing mock data logic
             with open('pre_generated_mock_data.json', 'r') as f:
                 funnel_data = json.load(f)
             data_provider = "mock"
+        elif provided_data:
+            # Use data provided in request body
+            funnel_data = provided_data
+            data_provider = "provided"
         else:
-            # Get cached GA4 data
+            # Get cached GA4 data (fallback)
             cached_funnel_data = cache_manager_redis.get_funnel_data(property_id)
             
             if cached_funnel_data is None:
                 return jsonify({
                     "success": False,
-                    "message": "No cached GA4 data found. Run /api/ga4/refresh-cache first.",
+                    "message": "No data provided. Either provide 'data' in request body, set 'use_mock_data': true, or run /api/ga4/refresh-cache first.",
                     "property_id": property_id
                 }), 404
             
@@ -381,7 +387,7 @@ def ga4_instant_analysis():
             },
             "insights": insights,
             "property_id": property_id,
-            "response_time": "2-3 seconds",
+            "response_time": "AI processing only (no API calls)",
             "timestamp": datetime.now().isoformat()
         })
         
