@@ -321,10 +321,21 @@ def ga4_instant_analysis():
         logger.info(f"AI insights processing for property {property_id}, use_mock_data: {use_mock_data}, data_provided: {provided_data is not None}")
         
         if use_mock_data:
-            # Use existing mock data logic
-            with open('pre_generated_mock_data.json', 'r') as f:
-                funnel_data = json.load(f)
-            data_provider = "mock"
+            # Use existing mock data logic with robust path and fallback
+            try:
+                mock_path = os.path.join(os.path.dirname(__file__), 'pre_generated_mock_data.json')
+                with open(mock_path, 'r') as f:
+                    funnel_data = json.load(f)
+                data_provider = "mock"
+            except FileNotFoundError:
+                logger.warning("pre_generated_mock_data.json not found via __file__ path; generating mock data on the fly")
+                funnel_data = mock_ga4_data.generate_mock_funnel_data(
+                    funnel_steps=config.DEFAULT_FUNNEL_STEPS,
+                    dimensions=config.DEFAULT_DIMENSIONS,
+                    date_range=config.DEFAULT_DATE_RANGE,
+                    property_id=property_id
+                )
+                data_provider = "mock_generated"
         elif provided_data:
             # Use data provided in request body
             funnel_data = provided_data
