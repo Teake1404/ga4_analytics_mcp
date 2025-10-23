@@ -15,6 +15,7 @@ import mock_ga4_data
 import funnel_analysis
 import ai_insights
 from ai_insights_minimal import generate_funnel_insights_minimal
+from ai_insights_streamlined import generate_streamlined_insights
 from cache_manager import cache_manager, batch_processor
 from ga4_auth import get_ga4_client, is_ga4_authenticated, get_ga4_auth_url, exchange_ga4_code
 from ga4_client import GA4Client
@@ -321,21 +322,10 @@ def ga4_instant_analysis():
         logger.info(f"AI insights processing for property {property_id}, use_mock_data: {use_mock_data}, data_provided: {provided_data is not None}")
         
         if use_mock_data:
-            # Use existing mock data logic with robust path and fallback
-            try:
-                mock_path = os.path.join(os.path.dirname(__file__), 'pre_generated_mock_data.json')
-                with open(mock_path, 'r') as f:
-                    funnel_data = json.load(f)
-                data_provider = "mock"
-            except FileNotFoundError:
-                logger.warning("pre_generated_mock_data.json not found via __file__ path; generating mock data on the fly")
-                funnel_data = mock_ga4_data.generate_mock_funnel_data(
-                    funnel_steps=config.DEFAULT_FUNNEL_STEPS,
-                    dimensions=config.DEFAULT_DIMENSIONS,
-                    date_range=config.DEFAULT_DATE_RANGE,
-                    property_id=property_id
-                )
-                data_provider = "mock_generated"
+            # Use existing mock data logic
+            with open('pre_generated_mock_data.json', 'r') as f:
+                funnel_data = json.load(f)
+            data_provider = "mock"
         elif provided_data:
             # Use data provided in request body
             funnel_data = provided_data
@@ -672,8 +662,8 @@ def funnel_analysis_endpoint():
                     ]
                 }
             else:
-                # Use full AI insights for rich, detailed analysis
-                insights = ai_insights.generate_funnel_insights(
+                # Use streamlined AI insights for specific, actionable analysis
+                insights = generate_streamlined_insights(
                     outliers=outliers,
                     baseline_rates=baseline_rates,
                     funnel_metrics=funnel_metrics,

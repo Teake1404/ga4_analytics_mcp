@@ -425,19 +425,145 @@
         .channel-value.bad {
             color: #dc3545;
         }
+        
+        /* Streamlined Report Styles */
+        .streamlined-report {
+            margin: 40px 0;
+        }
+        
+        .critical-issue-card, .growth-opportunity-card, .recommended-actions, .ready-to-scale {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .critical-issue-card {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .growth-opportunity-card {
+            border-left: 4px solid #28a745;
+        }
+        
+        .recommended-actions {
+            border-left: 4px solid #007bff;
+        }
+        
+        .ready-to-scale {
+            border-left: 4px solid #6f42c1;
+            text-align: center;
+        }
+        
+        .critical-issue-card h2, .growth-opportunity-card h2, .recommended-actions h2, .ready-to-scale h2 {
+            margin-top: 0;
+            font-size: 1.4em;
+            color: #333;
+        }
+        
+        .critical-issue-card h3, .growth-opportunity-card h3 {
+            font-size: 1.2em;
+            color: #555;
+            margin: 10px 0;
+        }
+        
+        .impact-highlight, .potential-lift {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        
+        .impact-highlight {
+            border-left: 3px solid #dc3545;
+        }
+        
+        .potential-lift {
+            border-left: 3px solid #28a745;
+        }
+        
+        .action-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .cta-buttons {
+            margin-top: 20px;
+        }
+        
+        .cta-button {
+            padding: 12px 24px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .cta-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .cta-button.secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+        }
+        
+        .why-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+            border-left: 3px solid #6c757d;
+        }
+        
+        .insight-bullets {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .insight-bullets li {
+            margin: 8px 0;
+            line-height: 1.5;
+            color: #555;
+        }
+        
+        .action-list {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .action-list li {
+            margin: 12px 0;
+            line-height: 1.5;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 GA4 AI Funnel Analysis</h1>
-            <p>Advanced Analytics with AI-Powered Insights</p>
+            <h1>🚀 AI-Powered Funnel Analysis</h1>
+            <p>See how AI uncovers hidden conversion opportunities in 60 seconds</p>
         </div>
         
         <div class="content">
             <div class="demo-section">
-                <h2>Live Demo</h2>
-                <p>Click the button below to generate AI-powered funnel analysis insights using mock GA4 data.</p>
                 <button class="demo-button" onclick="runAnalysis()" id="demoBtn">
                     🎯 Generate AI Insights
                 </button>
@@ -455,6 +581,48 @@
     </div>
 
     <script>
+        // Helper function to split long text into bullet points
+        function splitIntoBullets(text) {
+            if (!text) return [];
+            
+            // If text is already short, return as single bullet
+            if (text.length <= 100) {
+                return [text];
+            }
+            
+            // Split by sentences first
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 15);
+            const bullets = [];
+            
+            for (let i = 0; i < Math.min(3, sentences.length); i++) {
+                let sentence = sentences[i].trim();
+                
+                // If sentence is too long, split it intelligently
+                if (sentence.length > 100) {
+                    // Try to split at commas or semicolons first
+                    const parts = sentence.split(/[,;]/);
+                    if (parts.length > 1 && parts[0].trim().length > 20) {
+                        sentence = parts[0].trim();
+                    } else {
+                        // Split at word boundaries
+                        const words = sentence.split(' ');
+                        let truncated = '';
+                        for (const word of words) {
+                            if ((truncated + ' ' + word).trim().length > 90) break;
+                            truncated += (truncated ? ' ' : '') + word;
+                        }
+                        sentence = truncated + '...';
+                    }
+                }
+                
+                if (sentence.length > 10) {
+                    bullets.push(sentence);
+                }
+            }
+            
+            return bullets.length > 0 ? bullets : [text.substring(0, 100) + '...'];
+        }
+
         async function runAnalysis() {
             const button = document.getElementById('demoBtn');
             const loading = document.getElementById('loading');
@@ -493,31 +661,185 @@
             }
         }
         
+        function generateStreamlinedInsights(insights) {
+            // Check if we have streamlined insights format
+            if (insights.critical_issue && insights.growth_opportunity) {
+                return `
+                    <div class="streamlined-report">
+                        <div class="critical-issue-card">
+                            <h2>🔴 Critical Issue Identified</h2>
+                            <h3>${insights.critical_issue.title || 'Critical Issue'}</h3>
+                            <ul class="insight-bullets">
+                                <li>${insights.critical_issue.description || 'Critical performance issue detected'}</li>
+                            </ul>
+                            <div class="impact-highlight">
+                                <strong>Expected Impact:</strong> ${insights.critical_issue.impact || 'High impact on conversion'}
+                            </div>
+                            ${insights.critical_issue.why ? `
+                                <div class="why-section">
+                                    <strong>Root Cause:</strong>
+                                    <ul class="insight-bullets">
+                                        ${Array.isArray(insights.critical_issue.why) ? 
+                                            insights.critical_issue.why.map(bullet => `<li>${bullet}</li>`).join('') :
+                                            splitIntoBullets(insights.critical_issue.why).map(bullet => `<li>${bullet}</li>`).join('')
+                                        }
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="growth-opportunity-card">
+                            <h2>🟢 Your #1 Growth Opportunity</h2>
+                            <h3>${insights.growth_opportunity.title || 'Growth Opportunity'}</h3>
+                            <ul class="insight-bullets">
+                                <li>${insights.growth_opportunity.description || 'High-potential growth opportunity identified'}</li>
+                            </ul>
+                            <div class="potential-lift">
+                                <strong>Potential Lift:</strong> ${insights.growth_opportunity.potential_lift || 'Significant improvement potential'}
+                            </div>
+                            ${insights.growth_opportunity.why ? `
+                                <div class="why-section">
+                                    <strong>Why it works:</strong>
+                                    <ul class="insight-bullets">
+                                        ${Array.isArray(insights.growth_opportunity.why) ? 
+                                            insights.growth_opportunity.why.map(bullet => `<li>${bullet}</li>`).join('') :
+                                            splitIntoBullets(insights.growth_opportunity.why).map(bullet => `<li>${bullet}</li>`).join('')
+                                        }
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="recommended-actions">
+                            <h2>💡 Recommended Actions</h2>
+                            <ol class="action-list">
+                                <li><strong>Priority 1:</strong> ${insights.recommended_action.priority_1 || 'First priority action'}</li>
+                                <li><strong>Priority 2:</strong> ${insights.recommended_action.priority_2 || 'Second priority action'}</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="ready-to-scale">
+                            <h2>🚀 Ready to uncover these insights in your actual GA4 data?</h2>
+                            <div class="cta-buttons">
+                                <a href="https://calendly.com/shuqingke1404/15-minute-dscovery-chat" target="_blank" class="cta-button primary">Book a Free Discovery Call</a>
+                                <button class="cta-button secondary">See How It Works</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Fallback to original format if streamlined insights not available
+            return generateOriginalInsights(insights);
+        }
+        
+        function generateOriginalInsights(insights) {
+            let html = '';
+            
+            // Critical Issues
+            if (insights.critical_issues && insights.critical_issues.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🔴 Critical Issues (AI-Identified)</h3>
+                        ${insights.critical_issues.map((issue, index) => `
+                            <div class="critical-issue">
+                                <div class="issue-header">
+                                    <span class="impact-badge impact-${issue.impact || 'high'}">${(issue.impact || 'HIGH').toUpperCase()}</span>
+                                    <span class="issue-context">${issue.context || 'General'}</span>
+                                </div>
+                                <div class="issue-title">Issue: ${issue.issue || 'Critical performance issue detected'}</div>
+                                ${issue.root_cause ? `
+                                    <div class="root-cause">
+                                        <strong>Root Cause:</strong> ${issue.root_cause}
+                                    </div>
+                                ` : ''}
+                                ${issue.affected_users ? `
+                                    <div class="impact-details">
+                                        <strong>Impact:</strong> Affects ${issue.affected_users} of users
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Opportunities
+            if (insights.opportunities && insights.opportunities.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>🟢 Growth Opportunities (AI-Identified)</h3>
+                        ${insights.opportunities.map((opp, index) => `
+                            <div class="opportunity">
+                                <div class="opportunity-title">${opp.opportunity || 'Growth opportunity identified'}</div>
+                                ${opp.description ? `
+                                    <div class="opportunity-description">
+                                        ${opp.description}
+                                    </div>
+                                ` : ''}
+                                <div class="opportunity-impact">
+                                    <strong>Potential Lift:</strong> ${opp.potential_impact || opp.potential_lift || '15-25% improvement'}
+                                </div>
+                                ${opp.why ? `
+                                    <div class="opportunity-rationale">
+                                        <strong>Why:</strong> ${opp.why}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Recommendations
+            if (insights.recommendations && insights.recommendations.length > 0) {
+                html += `
+                    <div class="insight-card">
+                        <h3>💡 Actionable Recommendations (Prioritized by AI)</h3>
+                        ${insights.recommendations.map((rec, index) => `
+                            <div class="recommendation">
+                                <div class="rec-header">
+                                    <span class="priority-badge">Priority ${rec.priority || index + 1}</span>
+                                    <span class="effort-level">${(rec.effort || 'Medium').toLowerCase()}</span>
+                                </div>
+                                <div class="rec-title">${rec.action || rec.recommendation || 'Recommended action'}</div>
+                                ${rec.expected_impact ? `
+                                    <div class="rec-impact">
+                                        <strong>Expected Impact:</strong> ${rec.expected_impact}
+                                    </div>
+                                ` : ''}
+                                ${rec.focus ? `
+                                    <div class="rec-focus">
+                                        <strong>Focus:</strong> ${rec.focus}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
         function displayResults(data) {
             const results = document.getElementById('results');
             const insights = data.insights;
             const funnelData = data.data;
             
-            // October 14th Report Format
+            // Streamlined Report Format - Keep all graphs but use streamlined insights
             let html = `
                 <div class="report-header">
-                    <h1>GA4 Funnel Analysis Report</h1>
+                    <h1>🚀 AI-Powered Funnel Analysis Demo</h1>
                     <div class="report-meta">
-                        Generated: ${new Date().toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })} at ${new Date().toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                        })}
+                        See how AI uncovers hidden conversion opportunities in 60 seconds
                     </div>
                     <div class="ai-attribution">
-                        AI-Powered Insights by ${insights.model || 'Claude Sonnet 4.5'}
+                        Generated just now using advanced AI patterns
                     </div>
                 </div>
                 
+                <!-- KPI Section (moved to top) -->
                 <div class="kpi-section">
                     <div class="kpi-grid">
                         <div class="kpi-card">
@@ -539,7 +861,7 @@
                     </div>
                 </div>
                 
-                <!-- 6 Interactive Charts Section -->
+                <!-- 6 Interactive Charts Section (moved to top) -->
                 <div class="charts-section">
                     <h2>📈 Interactive Analytics Dashboard</h2>
                     <div class="charts-container">
@@ -582,77 +904,12 @@
                     </div>
                 </div>
                 
-                <div class="performance-section">
-                    <h2>📊 Performance Across All Dimensions</h2>
-                    
-                    <div class="dimension-grid">
-                        <div class="dimension-card">
-                            <h3>📈 Baseline Performance</h3>
-                            <div class="baseline-chart">
-                                <div class="baseline-bar" style="width: 76%">
-                                    <span>View→Cart: 15.2%</span>
-                                </div>
-                                <div class="baseline-bar" style="width: 43.5%">
-                                    <span>Cart→Purchase: 8.7%</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dimension-card">
-                            <h3>📊 Best vs Worst</h3>
-                            <div class="comparison-chart">
-                                <div class="best-performance">
-                                    <div class="performance-bar good" style="width: 100%">
-                                        <span>Desktop: 2.1%</span>
-                                    </div>
-                                    <div class="performance-bar good" style="width: 95%">
-                                        <span>Email: 2.4%</span>
-                                    </div>
-                                    <div class="performance-bar good" style="width: 90%">
-                                        <span>Product A: 2.1%</span>
-                                    </div>
-                                </div>
-                                <div class="worst-performance">
-                                    <div class="performance-bar bad" style="width: 33%">
-                                        <span>Tablet: 0.7%</span>
-                                    </div>
-                                    <div class="performance-bar bad" style="width: 48%">
-                                        <span>Social: 0.6%</span>
-                                    </div>
-                                    <div class="performance-bar bad" style="width: 45%">
-                                        <span>Sports: 0.6%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="dimension-card">
-                            <h3>📺 Channel Performance</h3>
-                            <div class="channel-chart">
-                                <div class="channel-bar">
-                                    <span class="channel-label">Email</span>
-                                    <div class="channel-value good">2.40%</div>
-                                </div>
-                                <div class="channel-bar">
-                                    <span class="channel-label">Direct</span>
-                                    <div class="channel-value">1.67%</div>
-                                </div>
-                                <div class="channel-bar">
-                                    <span class="channel-label">Organic</span>
-                                    <div class="channel-value">1.50%</div>
-                                </div>
-                                <div class="channel-bar">
-                                    <span class="channel-label">Paid</span>
-                                    <div class="channel-value">1.20%</div>
-                                </div>
-                                <div class="channel-bar">
-                                    <span class="channel-label">Social</span>
-                                    <div class="channel-value bad">0.60%</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                
+                <!-- Streamlined Insights Section -->
+                <div class="streamlined-insights">
+                    ${generateStreamlinedInsights(insights)}
                 </div>
+                
             `;
             
             // Critical Issues - October 14th Format
@@ -819,6 +1076,28 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: 1.32,
+                                    yMax: 1.32,
+                                    borderColor: 'red',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: 'Baseline: 1.32%',
+                                        enabled: true,
+                                        position: 'end',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                        borderColor: 'red',
+                                        borderWidth: 1,
+                                        borderRadius: 4,
+                                        padding: 4
+                                    }
+                                }
+                            }
                         }
                     },
                     scales: {
