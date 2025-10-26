@@ -16,6 +16,7 @@ import funnel_analysis
 import ai_insights
 from ai_insights_minimal import generate_funnel_insights_minimal
 from ai_insights_streamlined import generate_streamlined_insights
+from ga4_mcp_integration import ga4_mcp
 from cache_manager import cache_manager, batch_processor
 from ga4_auth import get_ga4_client, is_ga4_authenticated, get_ga4_auth_url, exchange_ga4_code
 from ga4_client import GA4Client
@@ -550,38 +551,57 @@ def funnel_analysis_endpoint():
         # 4. Fetch funnel data (mock or real GA4)
         # ============================================================================
         
-        if config.USE_MOCK_DATA or not is_ga4_authenticated():
-            logger.info("Using pre-generated mock GA4 data (USE_MOCK_DATA=true or not authenticated)")
-            try:
-                # Load pre-generated mock data
-                with open('pre_generated_mock_data.json', 'r') as f:
-                    funnel_data = json.load(f)
-                logger.info("Loaded pre-generated mock data successfully")
-            except FileNotFoundError:
-                logger.warning("Pre-generated data not found, generating fresh mock data")
-                funnel_data = mock_ga4_data.generate_mock_funnel_data(
-                    funnel_steps=funnel_steps,
-                    dimensions=dimensions,
-                    date_range=date_range,
-                    property_id=property_id
-                )
-            data_provider = "mock"
-        else:
-            logger.info("Using real GA4 API")
-            try:
-                ga4_client = get_ga4_client(property_id)
-                ga4_response = ga4_client.run_funnel_report(
-                    date_range=date_range,
-                    dimensions=dimensions,
-                    funnel_steps=funnel_steps
-                )
-                
-                if ga4_response['success']:
-                    funnel_data = ga4_response['data']
-                    data_provider = "ga4"
-                    logger.info(f"Successfully fetched GA4 data with {len(funnel_data.get('dimension_breakdowns', {}))} dimensions")
-                else:
-                    logger.warning(f"GA4 API failed: {ga4_response.get('error')}. Falling back to mock data.")
+        # Try GA4 MCP first, then fallback to mock data
+        logger.info("Attempting to use GA4 MCP for data retrieval")
+        try:
+            # Use GA4 MCP to get real data
+            funnel_data = ga4_mcp.get_funnel_data(property_id=property_id, days=30)
+            data_provider = "ga4_mcp"
+            logger.info("Successfully retrieved data via GA4 MCP")
+        except Exception as e:
+            logger.warning(f"GA4 MCP failed: {e}. Falling back to mock data.")
+            if config.USE_MOCK_DATA or not is_ga4_authenticated():
+                logger.info("Using pre-generated mock GA4 data (USE_MOCK_DATA=true or not authenticated)")
+                try:
+                    # Load pre-generated mock data
+                    with open('pre_generated_mock_data.json', 'r') as f:
+                        funnel_data = json.load(f)
+                    logger.info("Loaded pre-generated mock data successfully")
+                except FileNotFoundError:
+                    logger.warning("Pre-generated data not found, generating fresh mock data")
+                    funnel_data = mock_ga4_data.generate_mock_funnel_data(
+                        funnel_steps=funnel_steps,
+                        dimensions=dimensions,
+                        date_range=date_range,
+                        property_id=property_id
+                    )
+                data_provider = "mock"
+            else:
+                logger.info("Using legacy GA4 API")
+                try:
+                    ga4_client = get_ga4_client(property_id)
+                    ga4_response = ga4_client.run_funnel_report(
+                        date_range=date_range,
+                        dimensions=dimensions,
+                        funnel_steps=funnel_steps
+                    )
+                    
+                    if ga4_response['success']:
+                        funnel_data = ga4_response['data']
+                        data_provider = "ga4"
+                        logger.info(f"Successfully fetched GA4 data with {len(funnel_data.get('dimension_breakdowns', {}))} dimensions")
+                    else:
+                        logger.warning(f"GA4 API failed: {ga4_response.get('error')}. Falling back to mock data.")
+                        funnel_data = mock_ga4_data.generate_mock_funnel_data(
+                            funnel_steps=funnel_steps,
+                            dimensions=dimensions,
+                            date_range=date_range,
+                            property_id=property_id
+                        )
+                        data_provider = "mock"
+                        
+                except Exception as e2:
+                    logger.error(f"GA4 API error: {e2}. Falling back to mock data.")
                     funnel_data = mock_ga4_data.generate_mock_funnel_data(
                         funnel_steps=funnel_steps,
                         dimensions=dimensions,
@@ -589,16 +609,6 @@ def funnel_analysis_endpoint():
                         property_id=property_id
                     )
                     data_provider = "mock"
-                    
-            except Exception as e:
-                logger.error(f"GA4 API error: {e}. Falling back to mock data.")
-                funnel_data = mock_ga4_data.generate_mock_funnel_data(
-                    funnel_steps=funnel_steps,
-                    dimensions=dimensions,
-                    date_range=date_range,
-                    property_id=property_id
-                )
-                data_provider = "mock"
         
         # ============================================================================
         # 3. Calculate funnel metrics

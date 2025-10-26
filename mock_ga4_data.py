@@ -161,55 +161,55 @@ def generate_mock_funnel_data(
             }
         }
     
-    # Product breakdown (individual products)
+    # Product breakdown - Bags of Love products
     if "itemName" in dimensions:
         dimension_breakdowns["itemName"] = {
-            "Product A": {
+            "China Mugs": {
                 "view_item": 1200,
                 "add_to_cart": 252,  # 21.0% (above baseline +38% ⚠️ OPPORTUNITY - best seller)
                 "purchase": 25       # 9.9% checkout completion
             },
-            "Product B": {
+            "Photo Canvas": {
                 "view_item": 800,
                 "add_to_cart": 128,  # 16.0% (above baseline)
                 "purchase": 12       # 9.4% checkout completion
             },
-            "Product C": {
+            "Personalised Socks": {
                 "view_item": 600,
                 "add_to_cart": 72,   # 12.0% (below baseline -21% ⚠️ OUTLIER)
                 "purchase": 6        # 8.3% checkout completion
             },
-            "Product D": {
+            "Tea Towels": {
                 "view_item": 900,
                 "add_to_cart": 81,   # 9.0% (below baseline -41% ⚠️ OUTLIER - poor product-market fit)
                 "purchase": 7        # 8.6% checkout completion
             },
-            "Product E": {
+            "Photo Blankets": {
                 "view_item": 700,
                 "add_to_cart": 112,  # 16.0% (above baseline)
                 "purchase": 10       # 8.9% checkout completion
             }
         }
     
-    # Product category breakdown
+    # Product category breakdown - Bags of Love categories
     if "itemCategory" in dimensions:
         dimension_breakdowns["itemCategory"] = {
-            "Electronics": {
+            "Canvas & Wall Art": {
                 "view_item": 1800,
                 "add_to_cart": 306,  # 17.0% (above baseline +12%)
                 "purchase": 30       # 9.8% checkout completion
             },
-            "Clothing": {
+            "Photo Blankets": {
                 "view_item": 1200,
                 "add_to_cart": 156,  # 13.0% (below baseline -14% ⚠️ OUTLIER - high returns?)
                 "purchase": 13       # 8.3% checkout completion
             },
-            "Home & Garden": {
+            "Kitchen & Dining": {
                 "view_item": 800,
                 "add_to_cart": 136,  # 17.0% (above baseline +12%)
                 "purchase": 13       # 9.6% checkout completion
             },
-            "Sports": {
+            "Clothing & Accessories": {
                 "view_item": 500,
                 "add_to_cart": 40,   # 8.0% (below baseline -47% ⚠️ CRITICAL - poor targeting?)
                 "purchase": 3        # 7.5% checkout completion
