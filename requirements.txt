@@ -14,14 +14,14 @@ requests==2.31.0
 python-dotenv==1.0.0
 
 # Google Analytics 4 integration
-analytics-mcp==0.1.1
 google-analytics-data==0.18.19
 google-analytics-admin==0.24.1
 google-auth==2.40.0
 google-auth-oauthlib==1.1.0
 
-# Redis caching
+# Redis caching (optional for Railway)
 redis==4.5.4
+hiredis==2.2.3
 
 # Background job scheduling
 schedule==1.2.0

@@ -37,7 +37,14 @@ logger = logging.getLogger(__name__)
 
 # Initialize GA4 client and cache manager
 ga4_client = GA4Client()
-cache_manager_redis = RedisCacheManager()
+
+# Try to initialize Redis, but don't fail if it's not available (for Railway deployment)
+try:
+    cache_manager_redis = RedisCacheManager()
+    logger.info("Redis cache initialized successfully")
+except Exception as e:
+    logger.warning(f"Redis not available: {e}. Continuing without cache.")
+    cache_manager_redis = None
 
 
 @app.route('/', methods=['GET'])
@@ -802,9 +809,7 @@ def keyword_product_insights_endpoint():
                         "arguments": {
                             "domain": "bagsoflove.co.uk",
                             "source": "us",
-                            "limit": 20,
-                            "order_field": "traffic",
-                            "order_type": "desc"
+                            "limit": 10
                         }
                     },
                     "id": 1
@@ -813,7 +818,7 @@ def keyword_product_insights_endpoint():
                     "Accept": "application/json, text/event-stream",
                     "Content-Type": "application/json"
                 },
-                timeout=15,
+                timeout=10,
                 stream=True
             )
             
@@ -851,9 +856,28 @@ def keyword_product_insights_endpoint():
                 from seranking_mcp_client import fetch_seo_data_from_seranking
                 seo_data = fetch_seo_data_from_seranking("bagsoflove.co.uk")
         except Exception as e:
-            logger.warning(f"Error calling MCP server: {e}, using fallback")
-            from seranking_mcp_client import fetch_seo_data_from_seranking
-            seo_data = fetch_seo_data_from_seranking("bagsoflove.co.uk")
+            logger.warning(f"Error calling MCP server: {e}, using mock data")
+            # Use mock SEO data as fallback
+            seo_data = {
+                "keywords": {
+                    "top_keywords": [
+                        {
+                            "keyword": "personalised",
+                            "position": 3,
+                            "search_volume": 14800,
+                            "traffic_estimate": 473,
+                            "url": "https://www.bagsoflove.co.uk"
+                        },
+                        {
+                            "keyword": "photo gifts",
+                            "position": 4,
+                            "search_volume": 4400,
+                            "traffic_estimate": 99,
+                            "url": "https://www.bagsoflove.co.uk/photo-gifts"
+                        }
+                    ]
+                }
+            }
         
         # Get GA4 product data
         ga4_data = mock_ga4_data.generate_mock_funnel_data(
