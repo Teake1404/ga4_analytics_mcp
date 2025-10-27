@@ -120,15 +120,21 @@ def generate_keyword_product_insights(
     Generate AI insights connecting keywords to product performance
     This is what makes your lead magnet special - connecting SEO to revenue
     """
+    # Check if API key is set and valid
+    api_key = config.ANTHROPIC_API_KEY
+    if not api_key or api_key == "sk-ant-api03-not-set-local-testing":
+        logger.warning("Claude API key not set, using mock insights")
+        return get_mock_keyword_product_insights()
+    
     try:
-        client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+        client = anthropic.Anthropic(api_key=api_key)
         
         # Map keywords to products
         keyword_map = map_keywords_to_products(seo_data, ga4_data)
         
         context = build_keyword_product_context(keyword_map, ga4_data, seo_data)
         
-        logger.info("Generating keyword→product insights...")
+        logger.info("Generating keyword→product insights with Claude AI...")
         message = client.messages.create(
             model=config.CLAUDE_MODEL,
             max_tokens=4096,
@@ -138,8 +144,12 @@ def generate_keyword_product_insights(
         response_text = message.content[0].text
         insights = parse_json_response(response_text)
         
+        logger.info("✅ Generated AI insights successfully")
         return insights
         
+    except anthropic.AuthenticationError as e:
+        logger.error(f"Claude API authentication failed: {e}")
+        return get_mock_keyword_product_insights()
     except Exception as e:
         logger.error(f"Error generating keyword-product insights: {e}")
         return get_mock_keyword_product_insights()
