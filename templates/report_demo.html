@@ -159,6 +159,10 @@
                 html += '<h2 style="margin-top: 30px; color: #2d3748;">🏆 Top Revenue-Generating Keywords</h2>';
                 
                 data.insights.keyword_performance_analysis.top_performing_keywords.forEach(kw => {
+                    const traffic = kw.estimated_traffic || kw.traffic || 0;
+                    const revenue = kw.estimated_revenue || kw.revenue || "N/A";
+                    const insight = kw.opportunity || kw.insight || kw.why_it_works || kw.why_underperforming || "No insight available";
+                    
                     html += `
                         <div class="keyword-card">
                             <h3>${kw.keyword.toUpperCase()}</h3>
@@ -167,13 +171,13 @@
                                     <strong>Position:</strong> #${kw.position}
                                 </div>
                                 <div class="stat">
-                                    <strong>Traffic:</strong> ${kw.estimated_traffic}/month
+                                    <strong>Traffic:</strong> ${traffic}/month
                                 </div>
                                 <div class="stat">
-                                    <strong>Revenue:</strong> ${kw.estimated_revenue}
+                                    <strong>Revenue:</strong> ${revenue}
                                 </div>
                             </div>
-                            <p style="margin-top: 15px; opacity: 0.9;">💡 ${kw.opportunity}</p>
+                            <p style="margin-top: 15px; opacity: 0.9;">💡 ${insight}</p>
                         </div>
                     `;
                 });
@@ -183,25 +187,53 @@
             if (data.insights.strategic_recommendations) {
                 html += '<div class="recommendations"><h2 style="margin-bottom: 20px; color: #2d3748;">🎯 Strategic Recommendations</h2>';
                 
-                Object.values(data.insights.strategic_recommendations).forEach(rec => {
+                const recs = data.insights.strategic_recommendations;
+                if (recs.priority_1) {
                     html += `
                         <div class="recommendation">
-                            <h3>${rec.action}</h3>
-                            <p><strong>Revenue Impact:</strong> ${rec.expected_revenue_lift}</p>
-                            <p><strong>Timeline:</strong> ${rec.timeline}</p>
+                            <h3>${recs.priority_1.action || 'Optimize top keywords'}</h3>
+                            <p><strong>Revenue Impact:</strong> ${recs.priority_1.expected_revenue_lift || recs.priority_1.revenue_lift || 'N/A'}</p>
+                            <p><strong>Timeline:</strong> ${recs.priority_1.timeline || 'Ongoing'}</p>
                         </div>
                     `;
-                });
+                }
+                if (recs.priority_2) {
+                    html += `
+                        <div class="recommendation">
+                            <h3>${recs.priority_2.action || 'Optimize secondary keywords'}</h3>
+                            <p><strong>Revenue Impact:</strong> ${recs.priority_2.expected_revenue_lift || recs.priority_2.revenue_lift || 'N/A'}</p>
+                            <p><strong>Timeline:</strong> ${recs.priority_2.timeline || 'Ongoing'}</p>
+                        </div>
+                    `;
+                }
+                if (recs.priority_3) {
+                    html += `
+                        <div class="recommendation">
+                            <h3>${recs.priority_3.action || 'Additional optimizations'}</h3>
+                            <p><strong>Revenue Impact:</strong> ${recs.priority_3.expected_revenue_lift || recs.priority_3.revenue_lift || 'N/A'}</p>
+                            <p><strong>Timeline:</strong> ${recs.priority_3.timeline || 'Ongoing'}</p>
+                        </div>
+                    `;
+                }
                 
                 html += '</div>';
             }
             
             // ROI
-            if (data.summary) {
+            const revenue = data.summary?.total_estimated_revenue || 
+                           data.summary?.total_monthly_revenue || 
+                           data.summary?.total_revenue || 
+                           "Calculating...";
+            const opportunity = data.summary?.opportunity_value || 
+                              data.insights?.roi_calculation?.opportunity || 
+                              '';
+            
+            if (data.summary || data.insights?.roi_calculation) {
                 html += `
                     <div class="roi-box">
-                        <h2>💰 ${data.summary.total_estimated_revenue}</h2>
+                        <h2>💰 ${revenue}</h2>
                         <p>Estimated Monthly Revenue from SEO Keywords</p>
+                        ${opportunity ? `<p style="margin-top: 10px; font-size: 1.2em;">🎯 Opportunity: ${opportunity}</p>` : ''}
                     </div>
                 `;
             }
