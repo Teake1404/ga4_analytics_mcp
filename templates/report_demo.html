@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Product Revenue Insights</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .keyword-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .keyword-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .recommendations {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .recommendation {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .roi-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .roi-box h2 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .error {
+            color: #e53e3e;
+            background: #fed7d7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Keyword Product Revenue Insights</h1>
+        <p class="subtitle">AI-powered analysis connecting SEO keywords to product performance and revenue</p>
+        
+        <button onclick="loadReport()">Generate AI Insights Report</button>
+        
+        <div id="content"></div>
+    </div>
+
+    <script>
+        async function loadReport() {
+            const contentDiv = document.getElementById('content');
+            contentDiv.innerHTML = '<div class="loading">🔄 Generating AI insights... Please wait...</div>';
+            
+            try {
+                const response = await fetch('/api/keyword-product-insights', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        property_id: '123456789',
+                        date_range: 'last_30_days'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayReport(data);
+                
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">❌ Error loading report: ${error.message}</div>`;
+            }
+        }
+        
+        function displayReport(data) {
+            const contentDiv = document.getElementById('content');
+            
+            if (!data.success) {
+                contentDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                return;
+            }
+            
+            let html = '';
+            
+            // Top keywords
+            if (data.insights.keyword_performance_analysis.top_performing_keywords) {
+                html += '<h2 style="margin-top: 30px; color: #2d3748;">🏆 Top Revenue-Generating Keywords</h2>';
+                
+                data.insights.keyword_performance_analysis.top_performing_keywords.forEach(kw => {
+                    html += `
+                        <div class="keyword-card">
+                            <h3>${kw.keyword.toUpperCase()}</h3>
+                            <div class="stats">
+                                <div class="stat">
+                                    <strong>Position:</strong> #${kw.position}
+                                </div>
+                                <div class="stat">
+                                    <strong>Traffic:</strong> ${kw.estimated_traffic}/month
+                                </div>
+                                <div class="stat">
+                                    <strong>Revenue:</strong> ${kw.estimated_revenue}
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; opacity: 0.9;">💡 ${kw.opportunity}</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Recommendations
+            if (data.insights.strategic_recommendations) {
+                html += '<div class="recommendations"><h2 style="margin-bottom: 20px; color: #2d3748;">🎯 Strategic Recommendations</h2>';
+                
+                Object.values(data.insights.strategic_recommendations).forEach(rec => {
+                    html += `
+                        <div class="recommendation">
+                            <h3>${rec.action}</h3>
+                            <p><strong>Revenue Impact:</strong> ${rec.expected_revenue_lift}</p>
+                            <p><strong>Timeline:</strong> ${rec.timeline}</p>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            // ROI
+            if (data.summary) {
+                html += `
+                    <div class="roi-box">
+                        <h2>💰 ${data.summary.total_estimated_revenue}</h2>
+                        <p>Estimated Monthly Revenue from SEO Keywords</p>
+                    </div>
+                `;
+            }
+            
+            contentDiv.innerHTML = html;
+        }
+        
+        // Auto-load on page load
+        window.onload = function() {
+            // Don't auto-load, let user click button
+        };
+    </script>
+</body>
+</html>
+

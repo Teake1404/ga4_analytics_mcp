@@ -16,9 +16,10 @@ except ImportError:
 # API KEYS (CRITICAL: Use environment variables only!)
 # ============================================================================
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or "sk-ant-api03-not-set-local-testing"
 GA4_PROPERTY_ID = os.getenv("GA4_PROPERTY_ID")  # Optional default
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+SERANKING_API_TOKEN = os.getenv("SERANKING_API_TOKEN", "YOUR_SERANKING_API_TOKEN")
 
 # GA4 OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

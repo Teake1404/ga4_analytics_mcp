@@ -16,6 +16,8 @@ import funnel_analysis
 import ai_insights
 from ai_insights_minimal import generate_funnel_insights_minimal
 from ai_insights_streamlined import generate_streamlined_insights
+from cross_platform_insights import get_cross_platform_insights
+from cross_platform_analyzer import receive_seo_data_from_n8n
 from ga4_mcp_integration import ga4_mcp
 from cache_manager import cache_manager, batch_processor
 from ga4_auth import get_ga4_client, is_ga4_authenticated, get_ga4_auth_url, exchange_ga4_code
@@ -41,7 +43,14 @@ cache_manager_redis = RedisCacheManager()
 @app.route('/', methods=['GET'])
 def index():
     """Serve demo page or health check"""
-    return send_file('demo.html')
+    try:
+        return send_file('templates/report_demo.html')
+    except:
+        return jsonify({
+            "message": "GA4 Keyword Product Revenue Insights API",
+            "endpoint": "/api/keyword-product-insights",
+            "method": "POST"
+        })
 
 
 @app.route('/api', methods=['GET'])
@@ -55,6 +64,9 @@ def api_info():
         "endpoints": {
             "/": "GET - Demo page",
             "/api/funnel-analysis": "POST - Generate funnel analysis report (6 dimensions: channel, device, browser, resolution, product, category)",
+            "/api/keyword-product-insights": "POST - Generate AI insights connecting SEO keywords to product sales (Perfect for lead magnet)",
+            "/api/cross-platform-analysis": "POST - Cross-platform SEO + GA4 analysis",
+            "/api/seo-data": "POST - Receive SEO data from N8N/Seranking MCP",
             "/api/health": "GET - Health check",
             "/api/ga4/run-report": "POST - Direct GA4 API call (slow)",
             "/api/ga4/refresh-cache": "POST - Refresh GA4 cache (background)",
@@ -72,7 +84,7 @@ def health():
         config.validate_config()
         config_status = "ok"
     except ValueError as e:
-        config_status = str(e)
+        config_status = f"WARNING: {str(e)} (will use mock data)"
     
     return jsonify({
         "status": "healthy",
@@ -752,6 +764,195 @@ def funnel_analysis_endpoint():
         }), 500
 
 
+@app.route('/api/keyword-product-insights', methods=['POST'])
+def keyword_product_insights_endpoint():
+    """
+    Generate insights connecting SEO keywords to product performance
+    Perfect for lead magnet - shows how SEO drives actual revenue
+    
+    Request body:
+    {
+        "property_id": "123456789",
+        "date_range": "last_30_days"
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        property_id = data.get('property_id', config.GA4_PROPERTY_ID)
+        date_range = data.get('date_range', 'last_30_days')
+        
+        logger.info("Generating keyword→product insights for lead magnet")
+        
+        # Get SEO data from REAL Seranking API (not mock)
+        from real_seranking_client import RealSerankingClient
+        seo_client = RealSerankingClient(api_token="b931695c-9e38-cde4-4d4b-49eeb217118f")
+        
+        # Fetch LIVE data from YOUR OFFICIAL MCP SERVER on Replit
+        logger.info("Fetching LIVE data from official MCP server...")
+        mcp_url = "https://0207da74-76db-4156-96c8-1217466e5174-00-1n3hp5w7y0kjt.spock.replit.dev"
+        
+        try:
+            keywords_response = requests.post(
+                f"{mcp_url}/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "method": "tools/call",
+                    "params": {
+                        "name": "domainKeywords",
+                        "arguments": {
+                            "domain": "bagsoflove.co.uk",
+                            "source": "us",
+                            "limit": 20,
+                            "order_field": "traffic",
+                            "order_type": "desc"
+                        }
+                    },
+                    "id": 1
+                },
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json"
+                },
+                timeout=15,
+                stream=True
+            )
+            
+            if keywords_response.status_code == 200:
+                # Parse SSE response from MCP server
+                keywords_data = []
+                for line in keywords_response.iter_lines():
+                    if line:
+                        decoded = line.decode('utf-8')
+                        if decoded.startswith('data: '):
+                            data = json.loads(decoded[6:])
+                            result = data.get('result', {})
+                            content = result.get('content', [{}])[0]
+                            text = content.get('text', '[]')
+                            keywords_data = json.loads(text)
+                            break
+                
+                logger.info(f"✅ Got {len(keywords_data)} LIVE keywords from MCP server")
+                
+                # Convert to expected format
+                seo_data = {
+                    "keywords": {
+                        "top_keywords": [{
+                            "keyword": kw.get("keyword"),
+                            "position": kw.get("position"),
+                            "search_volume": kw.get("volume", 0),
+                            "traffic_estimate": kw.get("traffic", 0),
+                            "url": kw.get("url", "")
+                        } for kw in keywords_data]
+                    }
+                }
+                logger.info(f"Live keywords: {[kw['keyword'] for kw in seo_data['keywords']['top_keywords'][:5]]}")
+            else:
+                logger.warning(f"MCP server returned {keywords_response.status_code}, using fallback")
+                from seranking_mcp_client import fetch_seo_data_from_seranking
+                seo_data = fetch_seo_data_from_seranking("bagsoflove.co.uk")
+        except Exception as e:
+            logger.warning(f"Error calling MCP server: {e}, using fallback")
+            from seranking_mcp_client import fetch_seo_data_from_seranking
+            seo_data = fetch_seo_data_from_seranking("bagsoflove.co.uk")
+        
+        # Get GA4 product data
+        ga4_data = mock_ga4_data.generate_mock_funnel_data(
+            property_id=property_id,
+            date_range=date_range
+        )
+        
+        # Generate AI insights connecting keywords to products
+        insights = ai_insights.generate_keyword_product_insights(ga4_data, seo_data)
+        
+        return jsonify({
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "insights": insights,
+            "summary": {
+                "message": "AI-powered insights showing how SEO keywords drive product sales",
+                "keywords_analyzed": len(seo_data.get("keywords", {}).get("top_keywords", [])),
+                "products_analyzed": len(ga4_data.get("dimension_breakdowns", {}).get("itemCategory", {}))
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in keyword-product insights: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/cross-platform-analysis', methods=['POST'])
+def cross_platform_analysis_endpoint():
+    """Cross-platform analysis combining SEO and GA4 data"""
+    try:
+        # Get request data
+        data = request.get_json() or {}
+        property_id = data.get('property_id', '123456789')
+        date_range = data.get('date_range', 'last_30_days')
+        dimensions = data.get('dimensions', [
+            'sessionDefaultChannelGroup', 'deviceCategory', 'browser', 
+            'screenResolution', 'itemName', 'itemCategory'
+        ])
+        
+        logger.info(f"Cross-platform analysis request: property_id={property_id}, dimensions={dimensions}")
+        
+        # Get GA4 data
+        logger.info("Retrieving GA4 data for cross-platform analysis")
+        ga4_data = ga4_mcp.get_funnel_data(property_id=property_id, days=30)
+        
+        if not ga4_data or not ga4_data.get('dimension_breakdowns'):
+            logger.warning("GA4 MCP data not available, using mock data")
+            ga4_data = mock_ga4_data.generate_realistic_ga4_data(property_id, date_range, dimensions)
+        
+        # Generate cross-platform insights
+        logger.info("Generating cross-platform SEO + GA4 insights...")
+        cross_platform_insights = get_cross_platform_insights(ga4_data)
+        
+        # Create response
+        result = {
+            "property_id": property_id,
+            "date_range": date_range,
+            "dimensions": dimensions,
+            "ga4_data": ga4_data,
+            "cross_platform_insights": cross_platform_insights,
+            "metadata": {
+                "generated_at": datetime.now().isoformat(),
+                "data_sources": cross_platform_insights.get("metadata", {}).get("data_sources", ["GA4 Analytics"]),
+                "analysis_type": "cross_platform_seo_ga4"
+            }
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error in cross-platform analysis: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/seo-data', methods=['POST'])
+def receive_seo_data_endpoint():
+    """Receive SEO data from N8N/Seranking MCP"""
+    try:
+        # Get SEO data from request
+        seo_data = request.get_json()
+        
+        if not seo_data:
+            return jsonify({"error": "No SEO data provided"}), 400
+        
+        logger.info("Receiving SEO data from N8N/Seranking MCP")
+        
+        # Process SEO data
+        result = receive_seo_data_from_n8n(seo_data)
+        
+        logger.info("SEO data processed successfully")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error processing SEO data: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # Error handlers

@@ -17,7 +17,7 @@ python-dotenv==1.0.0
 analytics-mcp==0.1.1
 google-analytics-data==0.18.19
 google-analytics-admin==0.24.1
-google-auth==2.23.0
+google-auth==2.40.0
 google-auth-oauthlib==1.1.0
 
 # Redis caching
