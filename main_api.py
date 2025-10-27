@@ -969,6 +969,27 @@ def keyword_product_insights_endpoint():
             
             # SECTION 3: STRATEGIC RECOMMENDATIONS WITH DETAILED INSIGHTS
             "strategic_recommendations": {
+                "priority_1": {
+                    "action": "Optimize 'custom t shirts' category page for top 10 - Your biggest ROI opportunity",
+                    "expected_revenue_lift": "+$263/month (+$3,156/year)",
+                    "timeline": "3-6 months",
+                    "implementation": "Add Product schema markup, customer reviews, improve descriptions, internal linking",
+                    "why": "Missing $2,547/month potential revenue"
+                },
+                "priority_2": {
+                    "action": "Protect 'personalised' keyword - Your top revenue driver",
+                    "expected_revenue_lift": "Maintain $1,033/month + 15% boost = +$155/month",
+                    "timeline": "Ongoing",
+                    "implementation": "Monitor weekly, build internal links, create supporting content",
+                    "why": "Drives 81% of total revenue"
+                },
+                "priority_3": {
+                    "action": "Create product-specific landing pages for photo gifts",
+                    "expected_revenue_lift": "+$325/month combined",
+                    "timeline": "2-4 months",
+                    "implementation": "Create landing pages with product gallery, FAQ schema, testimonials",
+                    "why": "Improve conversion by 34%"
+                },
                 "content_strategy": {
                     "title": "Content Gaps & Opportunities",
                     "recommendations": [
