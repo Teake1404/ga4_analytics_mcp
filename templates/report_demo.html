@@ -188,6 +188,8 @@
                 html += '<div class="recommendations"><h2 style="margin-bottom: 20px; color: #2d3748;">🎯 Strategic Recommendations</h2>';
                 
                 const recs = data.insights.strategic_recommendations;
+                
+                // Handle priority_1, priority_2 format (simple recommendations)
                 if (recs.priority_1) {
                     html += `
                         <div class="recommendation">
@@ -214,6 +216,34 @@
                             <p><strong>Timeline:</strong> ${recs.priority_3.timeline || 'Ongoing'}</p>
                         </div>
                     `;
+                }
+                
+                // Handle content_strategy format (detailed recommendations)
+                if (recs.content_strategy && recs.content_strategy.recommendations) {
+                    html += '<h3 style="margin-top: 20px; color: #4a5568;">Content Strategy</h3>';
+                    recs.content_strategy.recommendations.slice(0, 3).forEach(rec => {
+                        html += `
+                            <div class="recommendation">
+                                <h3>${rec.action || 'Content optimization'}</h3>
+                                <p><strong>Revenue Impact:</strong> ${rec.revenue_impact || 'N/A'}</p>
+                                <p><strong>Target:</strong> ${rec.target || rec.target_keywords?.join(', ') || 'N/A'}</p>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Handle technical_insights format
+                if (recs.technical_insights && recs.technical_insights.recommendations) {
+                    html += '<h3 style="margin-top: 20px; color: #4a5568;">Technical SEO</h3>';
+                    recs.technical_insights.recommendations.slice(0, 3).forEach(rec => {
+                        html += `
+                            <div class="recommendation">
+                                <h3>${rec.action || 'Technical optimization'}</h3>
+                                <p><strong>Impact:</strong> ${rec.impact || 'N/A'}</p>
+                                <p><strong>Why:</strong> ${rec.reason || 'N/A'}</p>
+                            </div>
+                        `;
+                    });
                 }
                 
                 html += '</div>';
