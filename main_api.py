@@ -856,28 +856,47 @@ def keyword_product_insights_endpoint():
                 from seranking_mcp_client import fetch_seo_data_from_seranking
                 seo_data = fetch_seo_data_from_seranking("bagsoflove.co.uk")
         except Exception as e:
-            logger.warning(f"Error calling MCP server: {e}, using mock data")
-            # Use mock SEO data as fallback
+            logger.warning(f"Error calling MCP server: {e}, using EXACT live data as mock")
+            # Use EXACT format from live MCP data we captured earlier
+            keywords_data = [
+                {
+                    "block_type": "organic",
+                    "keyword": "personalised",
+                    "position": 3,
+                    "volume": 14800,
+                    "traffic": 473,
+                    "url": "https://www.bagsoflove.co.uk"
+                },
+                {
+                    "block_type": "organic",
+                    "keyword": "photo gifts",
+                    "position": 4,
+                    "volume": 4400,
+                    "traffic": 99,
+                    "url": "https://www.bagsoflove.co.uk/photo-gifts"
+                },
+                {
+                    "block_type": "organic",
+                    "keyword": "custom t shirts",
+                    "position": 13,
+                    "volume": 14800,
+                    "traffic": 65,
+                    "url": "https://www.bagsoflove.co.uk/custom-t-shirts"
+                }
+            ]
+            
             seo_data = {
                 "keywords": {
-                    "top_keywords": [
-                        {
-                            "keyword": "personalised",
-                            "position": 3,
-                            "search_volume": 14800,
-                            "traffic_estimate": 473,
-                            "url": "https://www.bagsoflove.co.uk"
-                        },
-                        {
-                            "keyword": "photo gifts",
-                            "position": 4,
-                            "search_volume": 4400,
-                            "traffic_estimate": 99,
-                            "url": "https://www.bagsoflove.co.uk/photo-gifts"
-                        }
-                    ]
+                    "top_keywords": [{
+                        "keyword": kw.get("keyword"),
+                        "position": kw.get("position"),
+                        "search_volume": kw.get("volume", 0),
+                        "traffic_estimate": kw.get("traffic", 0),
+                        "url": kw.get("url", "")
+                    } for kw in keywords_data]
                 }
             }
+            logger.info(f"Using mock data with {len(keywords_data)} keywords from live MCP format")
         
         # Get GA4 product data
         ga4_data = mock_ga4_data.generate_mock_funnel_data(
