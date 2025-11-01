@@ -5,13 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements first (for better caching)
-COPY requirements.txt .
+COPY funnel_report_service/requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy entire funnel_report_service directory
+COPY funnel_report_service/ .
 
 # Set environment variables
 ENV PORT=8080
@@ -22,4 +22,3 @@ EXPOSE 8080
 
 # Run with gunicorn
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 600 app:app
-
