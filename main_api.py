@@ -84,6 +84,124 @@ def api_info():
     })
 
 
+@app.route('/funnel-report', methods=['GET'])
+def funnel_report_page():
+    """Simple HTML funnel report for Railway demo"""
+    try:
+        # Prepare data (use mock if GA4 not available)
+        default_dimensions = [
+            "sessionDefaultChannelGroup",
+            "deviceCategory",
+            "browser",
+            "screenResolution",
+            "itemName",
+            "itemCategory"
+        ]
+
+        if config.USE_MOCK_DATA or not is_ga4_authenticated():
+            funnel_data = mock_ga4_data.generate_mock_funnel_data(
+                funnel_steps=["view_item", "add_to_cart", "purchase"],
+                dimensions=default_dimensions,
+                date_range="last_30_days",
+                property_id=str(config.GA4_PROPERTY_ID or "123456789")
+            )
+            data_provider = "mock"
+        else:
+            # Best-effort GA4 fetch through MCP, fall back to mock on error
+            try:
+                funnel_data = ga4_mcp.get_funnel_data(property_id=config.GA4_PROPERTY_ID, days=30)
+                data_provider = "ga4_mcp"
+            except Exception:
+                funnel_data = mock_ga4_data.generate_mock_funnel_data(
+                    dimensions=default_dimensions
+                )
+                data_provider = "mock"
+
+        funnel_metrics = funnel_analysis.calculate_funnel_metrics(funnel_data)
+        baseline_rates = funnel_data.get(
+            "overall_baseline",
+            funnel_analysis.calculate_baseline_from_data(funnel_data)
+        )
+        outliers = funnel_analysis.detect_funnel_outliers(
+            funnel_metrics,
+            baseline_rates,
+            threshold=config.OUTLIER_THRESHOLD
+        )
+
+        top_opps = funnel_analysis.get_top_opportunities(outliers, limit=5)
+        crit_issues = funnel_analysis.get_critical_issues(outliers, limit=5)
+
+        # Build minimal HTML
+        def rate(p):
+            return f"{round(p*100, 2)}%"
+
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset=\"utf-8\" />
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+            <title>Funnel Analysis Report</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; margin: 24px; }}
+                .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }}
+                .card {{ background: #ffffff; border-radius: 10px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }}
+                .title {{ margin: 0 0 8px; color: #2d3748; }}
+                .subtitle {{ color: #718096; margin: 6px 0 18px; }}
+                .list {{ margin: 0; padding-left: 18px; }}
+                .pill {{ display: inline-block; background: #edf2f7; color: #2d3748; padding: 4px 8px; border-radius: 999px; font-size: 12px; margin-left: 8px; }}
+                table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
+                th, td {{ text-align: left; padding: 8px; border-bottom: 1px solid #eee; }}
+            </style>
+        </head>
+        <body>
+            <h1 class=\"title\">🎯 Funnel Analysis Report <span class=\"pill\">{data_provider}</span></h1>
+            <p class=\"subtitle\">Baseline: view→cart {rate(baseline_rates.get('view_item_to_add_to_cart', 0))}, cart→purchase {rate(baseline_rates.get('add_to_cart_to_purchase', 0))}, overall {rate(baseline_rates.get('overall_conversion', 0))}</p>
+
+            <div class=\"grid\">
+                <div class=\"card\">
+                    <h3 class=\"title\">Top Opportunities</h3>
+                    <ol class=\"list\">
+                        {''.join(f"<li><strong>{o['dimension']} → {o['dimension_value']}</strong> · overall {rate(o['overall_conversion_rate'])} <span class='pill'>+{round(o['overall_deviation']*100,1)}%</span></li>" for o in top_opps) or '<li>None</li>'}
+                    </ol>
+                </div>
+                <div class=\"card\">
+                    <h3 class=\"title\">Critical Issues</h3>
+                    <ol class=\"list\">
+                        {''.join(f"<li><strong>{o['dimension']} → {o['dimension_value']}</strong> · overall {rate(o['overall_conversion_rate'])} <span class='pill'>{round(o['overall_deviation']*100,1)}%</span> ({o['severity']})</li>" for o in crit_issues) or '<li>None</li>'}
+                    </ol>
+                </div>
+            </div>
+
+            <div class=\"card\" style=\"margin-top:20px\">
+                <h3 class=\"title\">Dimension Snapshot: deviceCategory</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>View→Cart</th>
+                            <th>Cart→Purchase</th>
+                            <th>Overall</th>
+                            <th>Views</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(
+                            f"<tr><td>{val}</td><td>{rate(m['view_to_cart_rate'])}</td><td>{rate(m['cart_to_purchase_rate'])}</td><td>{rate(m['overall_conversion_rate'])}</td><td>{m['absolute_numbers']['view_item']}</td></tr>"
+                            for val, m in (funnel_metrics.get('deviceCategory', {{}}) or {{}}).items()
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+        return html, 200, {"Content-Type": "text/html"}
+    except Exception as e:
+        logger.error(f"Error rendering funnel report page: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health():
     """Detailed health check"""
@@ -267,10 +385,11 @@ def ga4_refresh_cache():
         traffic_sources = ga4_client.get_traffic_sources(property_id)
         overview_metrics = ga4_client.get_overview_metrics(property_id)
         
-        # Cache the data
-        cache_manager_redis.cache_funnel_data(property_id, funnel_data)
-        cache_manager_redis.cache_traffic_sources(property_id, traffic_sources)
-        cache_manager_redis.cache_overview_metrics(property_id, overview_metrics)
+        # Cache the data (if Redis is available)
+        if cache_manager_redis:
+            cache_manager_redis.cache_funnel_data(property_id, funnel_data)
+            cache_manager_redis.cache_traffic_sources(property_id, traffic_sources)
+            cache_manager_redis.cache_overview_metrics(property_id, overview_metrics)
         
         return jsonify({
             "success": True,
@@ -296,14 +415,23 @@ def ga4_get_cached():
         
         logger.info(f"Getting cached GA4 data for property {property_id}, report type: {report_type}")
         
-        if report_type == 'funnel':
-            cached_data = cache_manager_redis.get_funnel_data(property_id)
-        elif report_type == 'traffic_sources':
-            cached_data = cache_manager_redis.get_traffic_sources(property_id)
-        elif report_type == 'overview':
-            cached_data = cache_manager_redis.get_overview_metrics(property_id)
+        cached_data = None
+        if cache_manager_redis:
+            if report_type == 'funnel':
+                cached_data = cache_manager_redis.get_funnel_data(property_id)
+            elif report_type == 'traffic_sources':
+                cached_data = cache_manager_redis.get_traffic_sources(property_id)
+            elif report_type == 'overview':
+                cached_data = cache_manager_redis.get_overview_metrics(property_id)
+            else:
+                return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
         else:
-            return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
+            return jsonify({
+                "success": False,
+                "message": "Redis cache not available. Cache functionality disabled.",
+                "property_id": property_id,
+                "report_type": report_type
+            }), 503
         
         if cached_data is None:
             return jsonify({
@@ -352,9 +480,11 @@ def ga4_instant_analysis():
             data_provider = "provided"
         else:
             # Get cached GA4 data (fallback)
-            cached_funnel_data = cache_manager_redis.get_funnel_data(property_id)
+            cached_funnel_data = None
+            if cache_manager_redis:
+                cached_funnel_data = cache_manager_redis.get_funnel_data(property_id)
             
-            if cached_funnel_data is None:
+            if not cache_manager_redis or cached_funnel_data is None:
                 return jsonify({
                     "success": False,
                     "message": "No data provided. Either provide 'data' in request body, set 'use_mock_data': true, or run /api/ga4/refresh-cache first.",
@@ -442,14 +572,15 @@ def ga4_cached_data():
         cached_data = None
         data_provider = "cache_miss"
         
-        if report_type == 'funnel':
-            cached_data = cache_manager_redis.get_funnel_data(property_id)
-        elif report_type == 'traffic_sources':
-            cached_data = cache_manager_redis.get_traffic_sources(property_id)
-        elif report_type == 'overview':
-            cached_data = cache_manager_redis.get_overview_metrics(property_id)
-        else:
-            return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
+        if cache_manager_redis:
+            if report_type == 'funnel':
+                cached_data = cache_manager_redis.get_funnel_data(property_id)
+            elif report_type == 'traffic_sources':
+                cached_data = cache_manager_redis.get_traffic_sources(property_id)
+            elif report_type == 'overview':
+                cached_data = cache_manager_redis.get_overview_metrics(property_id)
+            else:
+                return jsonify({"error": "Invalid report_type. Use: funnel, traffic_sources, overview"}), 400
         
         if cached_data:
             data_provider = "cached"
